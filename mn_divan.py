@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException
+import re
 
 # Устанавливаем опции для браузера
 chrome_options = Options()
@@ -24,6 +25,7 @@ driver.get('https://www.divan.ru/category/svet')
 # Ожидаем загрузку всех элементов
 wait = WebDriverWait(driver, 10)
 
+
 # Найти все карточки товаров
 def find_product_cards():
     return wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.LlPhw')))
@@ -31,27 +33,25 @@ def find_product_cards():
 product_cards = find_product_cards()
 
 # Заголовки для CSV-файла
-header = ['Наименование', 'Цена', 'Линк']
+header = ['Цена']
 data = []
 
 for card in product_cards:
     try:
-        name_element = card.find_element(By.CSS_SELECTOR, 'a.ui-GPFV8.qUioe.ProductName.ActiveProduct')
         price_element = card.find_element(By.CSS_SELECTOR, 'span.ui-LD-ZU.KIkOH[data-testid="price"]')
-        link_element = card.find_element(By.CSS_SELECTOR, 'a.ui-GPFV8.qUioe.ProductName.ActiveProduct[href]')
+        price_text = price_element.text.strip()
+        price = re.sub(r'\D', '', price_text)  # Удалить все нечисловые символы из цены
 
-        name = name_element.text.strip()
-        price = price_element.text.strip()
-        link = link_element.get_attribute("href").strip()
-
-        if name and price and link:
-            data.append([name, price, link])
+        if price:
+            price = int(price)  # Преобразовать цену в тип данных int
+            data.append([price])
     except NoSuchElementException:
         continue
     except StaleElementReferenceException:
         product_cards = find_product_cards()
         break
-
+print(f'Цена: {price}, Тип данных: {type(price)}')  # Вывод типа данных
+#print(f'Цена: {data}, Тип данных: {type(data)}')
 # Записываем данные в CSV-файл
 with open('svet.csv', 'w', newline='', encoding='utf-8-sig') as file:
     writer = csv.writer(file)
